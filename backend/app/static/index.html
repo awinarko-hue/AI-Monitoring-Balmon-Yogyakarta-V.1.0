@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Monitoring Balmon Yogyakarta - Auto Identification Spektrum Frekuensi Radio</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js & Leaflet -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-left">
+      <div class="brand-logo">
+        <div class="radar-pulse"></div>
+        <i data-lucide="radio" class="brand-icon"></i>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">AI SPECTRUM IDENTIFIER <span class="badge-version">v1.0</span></div>
+        <div class="brand-subtitle">Balai Monitor Spektrum Frekuensi Radio Kelas I Yogyakarta</div>
+      </div>
+    </div>
+    
+    <div class="nav-center">
+      <div class="session-selector-box">
+        <i data-lucide="layers" class="icon-sm"></i>
+        <select id="sessionSelect" class="session-dropdown" title="Pilih Sesi Monitoring">
+          <option value="">Memuat Sesi...</option>
+        </select>
+        <button id="btnNewScan" class="btn btn-sm btn-primary">
+          <i data-lucide="upload-cloud"></i> Import Scan
+        </button>
+      </div>
+    </div>
+    
+    <div class="nav-right">
+      <button id="btnOpenSims" class="btn btn-glass" title="Kelola Database SIMS">
+        <i data-lucide="database"></i> SIMS DB
+      </button>
+      <button id="btnOpenManual" class="btn btn-glass" title="Data Tambahan Stasiun Manual">
+        <i data-lucide="plus-circle"></i> Tambahan Data
+      </button>
+      <button id="btnOpenMap" class="btn btn-glass" title="Lihat Peta Lokasi Monitoring & Pemancar">
+        <i data-lucide="map-pin"></i> Peta
+      </button>
+      <button id="btnExport" class="btn btn-emerald" title="Export Laporan ROL & DOCX">
+        <i data-lucide="download"></i> Export ROL
+      </button>
+      <button id="btnOpenSettings" class="btn btn-icon" title="Pengaturan Bounding Box & Parameter">
+        <i data-lucide="settings"></i>
+      </button>
+      
+      <div class="user-badge" id="userBadge">
+        <div class="avatar">AD</div>
+        <div class="user-info">
+          <div class="user-name" id="displayUserName">Agus Dong</div>
+          <div class="user-role" id="displayUserRole">PPFR Ahli Muda</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace Container -->
+  <main class="main-container">
+    
+    <!-- Top Stats & Metadata Row -->
+    <section class="meta-stats-row">
+      <!-- Session Details Card -->
+      <div class="glass-card meta-card">
+        <div class="card-header">
+          <div class="card-title"><i data-lucide="activity"></i> Metadata Sesi Monitoring</div>
+          <span class="badge badge-info" id="badgeDeviceType">TCI</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Kegiatan / Sesi</span>
+            <span class="meta-val" id="metaSessionName">-</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Nomor SPT</span>
+            <span class="meta-val text-cyan" id="metaSptNumber">-</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Tanggal & Jam</span>
+            <span class="meta-val" id="metaDateTime">-</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Lokasi / Stasiun</span>
+            <span class="meta-val" id="metaLocation">-</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Koordinat Monitor</span>
+            <span class="meta-val font-mono" id="metaCoordinates">-</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Petugas Pelaksana</span>
+            <span class="meta-val" id="metaOfficer">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Cards -->
+      <div class="metrics-container">
+        <div class="metric-card metric-total">
+          <div class="metric-icon"><i data-lucide="bar-chart-2"></i></div>
+          <div class="metric-body">
+            <div class="metric-num" id="statTotalSignals">0</div>
+            <div class="metric-label">Total Sinyal Scan</div>
+          </div>
+        </div>
+        
+        <div class="metric-card metric-peak">
+          <div class="metric-icon"><i data-lucide="zap"></i></div>
+          <div class="metric-body">
+            <div class="metric-num" id="statTotalPeaks">0</div>
+            <div class="metric-label">Puncak Sinyal (Peak)</div>
+          </div>
+        </div>
+        
+        <div class="metric-card metric-legal">
+          <div class="metric-icon"><i data-lucide="check-circle"></i></div>
+          <div class="metric-body">
+            <div class="metric-num text-emerald" id="statLegal">0</div>
+            <div class="metric-label">Legal (Sesuai ISR)</div>
+          </div>
+        </div>
+        
+        <div class="metric-card metric-expired">
+          <div class="metric-icon"><i data-lucide="alert-triangle"></i></div>
+          <div class="metric-body">
+            <div class="metric-num text-amber" id="statExpired">0</div>
+            <div class="metric-label">Kadaluarsa (Expired)</div>
+          </div>
+        </div>
+        
+        <div class="metric-card metric-unknown">
+          <div class="metric-icon"><i data-lucide="help-circle"></i></div>
+          <div class="metric-body">
+            <div class="metric-num text-rose" id="statUnknown">0</div>
+            <div class="metric-label">Belum Diketahui</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Spectrum Controls & Interactive Chart Row -->
+    <section class="chart-section glass-card">
+      <div class="chart-toolbar">
+        <div class="toolbar-left">
+          <div class="tool-title"><i data-lucide="trending-up"></i> Tampilan Spektrum Frekuensi vs Field Strength (dBuV/m)</div>
+        </div>
+        
+        <div class="toolbar-controls">
+          <!-- Preset Selector -->
+          <div class="control-group">
+            <label><i data-lucide="sliders"></i> Pita Frekuensi:</label>
+            <select id="presetSelect" class="input-select">
+              <option value="custom">Pilih Preset Pita Frekuensi (18 Pita)...</option>
+            </select>
+          </div>
+          
+          <div class="control-group">
+            <label>Start (MHz):</label>
+            <input type="number" id="inputStartFreq" step="0.01" class="input-sm" placeholder="87.5">
+          </div>
+          
+          <div class="control-group">
+            <label>Stop (MHz):</label>
+            <input type="number" id="inputStopFreq" step="0.01" class="input-sm" placeholder="108.0">
+          </div>
+          
+          <div class="control-group">
+            <label>Threshold:</label>
+            <div class="input-suffix-wrapper">
+              <input type="number" id="inputThreshold" value="50" step="1" class="input-sm">
+              <span class="suffix">dBuV/m</span>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <label>Radius:</label>
+            <div class="input-suffix-wrapper">
+              <input type="number" id="inputRadius" value="50" step="5" class="input-sm">
+              <span class="suffix">km</span>
+            </div>
+          </div>
+          
+          <button id="btnRunIdentification" class="btn btn-primary btn-pulse">
+            <i data-lucide="play"></i> Auto Identifikasi
+          </button>
+        </div>
+      </div>
+
+      <!-- Chart Canvas Wrapper -->
+      <div class="chart-wrapper">
+        <canvas id="spectrumChart"></canvas>
+      </div>
+      
+      <!-- Chart Footer Legend -->
+      <div class="chart-legend-bar">
+        <div class="legend-item"><span class="legend-dot cyan"></span> Level Spektrum (dBuV/m)</div>
+        <div class="legend-item"><span class="legend-dot red-dash"></span> Threshold Batas Level</div>
+        <div class="legend-item"><span class="legend-dot green"></span> Legal</div>
+        <div class="legend-item"><span class="legend-dot yellow"></span> Kadaluarsa</div>
+        <div class="legend-item"><span class="legend-dot red"></span> Belum Diketahui / Ilegal</div>
+        <div class="legend-item"><span class="legend-dot gray"></span> Off Air</div>
+      </div>
+    </section>
+
+    <!-- Identification Results & Marker Filtering Table -->
+    <section class="table-section glass-card">
+      <div class="table-header-toolbar">
+        <div class="table-title">
+          <i data-lucide="list"></i> Hasil Identifikasi Sinyal & Stasiun Pemancar
+        </div>
+        
+        <div class="table-filters">
+          <!-- Marker Filter Dropdown (Replicating Excel Marker Dropdown) -->
+          <div class="filter-group">
+            <label><i data-lucide="filter"></i> Tampilan Marker:</label>
+            <select id="markerFilterSelect" class="input-select select-highlight">
+              <option value="all">all (Semua Teridentifikasi & Peak)</option>
+              <option value="peak">peak (Hanya Puncak Sinyal Aktif)</option>
+              <option value="blm_diketahui">blm diketahui (Hanya Sinyal Tanpa Izin)</option>
+              <option value="offair">offair (Izin SIMS Tidak Aktif / Low)</option>
+              <option value="all+blm_diketahui">all + blm diketahui</option>
+              <option value="all+offair">all + offair</option>
+              <option value="all+offair+blm_diketahui">all + offair + blm diketahui</option>
+            </select>
+          </div>
+          
+          <!-- Search input -->
+          <div class="search-box">
+            <i data-lucide="search"></i>
+            <input type="text" id="tableSearch" placeholder="Cari Frekuensi, Pengguna, Dinas, Kota...">
+          </div>
+          
+          <div class="table-actions">
+            <button id="btnExportExcelQuick" class="btn btn-sm btn-emerald">
+              <i data-lucide="file-spreadsheet"></i> Unduh ROL
+            </button>
+            <button id="btnExportDocxQuick" class="btn btn-sm btn-glass">
+              <i data-lucide="file-text"></i> Unduh Laporan
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Table -->
+      <div class="table-responsive">
+        <table class="data-table" id="identificationTable">
+          <thead>
+            <tr>
+              <th width="50">No</th>
+              <th width="120">Frekuensi</th>
+              <th width="110">Level Sinyal</th>
+              <th width="90">Marker</th>
+              <th>Identifikasi / Nama Pengguna</th>
+              <th width="150">Status Legalitas</th>
+              <th width="100">Jarak (km)</th>
+              <th>Lokasi / Kota</th>
+              <th>Dinas (Service)</th>
+              <th width="100">Sumber</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="10" class="text-center text-muted">Memuat data identifikasi...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Footer / Pagination -->
+      <div class="table-footer">
+        <div class="table-info" id="tableInfo">Menampilkan 0 hasil</div>
+        <div class="pagination" id="paginationControls"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODALS -->
+
+  <!-- 1. Upload Scan Modal -->
+  <div class="modal" id="modalUploadScan">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="upload-cloud"></i> Import Data Scan Spectrum Analyzer</div>
+        <button class="modal-close" onclick="closeModal('modalUploadScan')">&times;</button>
+      </div>
+      <form id="formUploadScan">
+        <div class="modal-body">
+          <div class="dropzone" id="dropzoneScan">
+            <i data-lucide="file-up" class="dropzone-icon"></i>
+            <div class="dropzone-text">Tarik & Lepas File Hasil Scan Lapangan di sini</div>
+            <div class="dropzone-hint">Mendukung format TCI (.csv), Argus 5/6 (.csv, .xlsx), LS306/LS327W, Anritsu, Agilent N9930B</div>
+            <input type="file" id="fileScanInput" required style="display:none;" accept=".csv,.xlsx,.xls,.txt">
+            <button type="button" class="btn btn-sm btn-glass" onclick="document.getElementById('fileScanInput').click()">Pilih File</button>
+            <div id="selectedScanFileName" class="selected-file-label"></div>
+          </div>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Format / Alat Ukur</label>
+              <select id="uploadDeviceType" class="input-select">
+                <option value="auto">Auto-Detect Format</option>
+                <option value="TCI">TCI (*.csv)</option>
+                <option value="Argus">Argus 5 / 6 (*.csv, *.xlsx)</option>
+                <option value="LS306">LS306 / LS327W (*.csv)</option>
+                <option value="Anritsu">Anritsu (*.csv)</option>
+                <option value="Agilent">Agilent N9930B (*.csv)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>Nama Sesi Kegiatan</label>
+              <input type="text" id="uploadSessionName" class="input-text" placeholder="Contoh: Monitoring Rutin Pita FM Yogyakarta">
+            </div>
+            
+            <div class="form-group">
+              <label>Nomor SPT</label>
+              <input type="text" id="uploadSptNumber" class="input-text" placeholder="SPT/042/BALMON.34/09/2026">
+            </div>
+            
+            <div class="form-group">
+              <label>Nama Petugas Pelaksana</label>
+              <input type="text" id="uploadOfficerName" class="input-text" value="Agus Dong (PPFR Ahli Muda)">
+            </div>
+            
+            <div class="form-group">
+              <label>Latitude Monitoring</label>
+              <input type="number" id="uploadLatitude" step="0.000001" class="input-text" value="-7.733139" oninput="triggerReverseGeocodeDebounced()">
+            </div>
+            
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label style="margin-bottom:0;">Longitude Monitoring</label>
+                <span id="geoStatusBadge" class="badge badge-success" style="font-size: 0.7rem; display: none;">📍 Terdeteksi</span>
+              </div>
+              <input type="number" id="uploadLongitude" step="0.000001" class="input-text" value="110.471667" oninput="triggerReverseGeocodeDebounced()">
+            </div>
+            
+            <div class="form-group">
+              <label>Kabupaten / Kota</label>
+              <input type="text" id="uploadCity" class="input-text" value="SLEMAN">
+            </div>
+            
+            <div class="form-group">
+              <label>Kecamatan</label>
+              <input type="text" id="uploadDistrict" class="input-text" value="Kalasan">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-glass" onclick="closeModal('modalUploadScan')">Batal</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitScan">
+            <i data-lucide="upload"></i> Upload & Parse
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. SIMS Database Modal -->
+  <div class="modal" id="modalSims">
+    <div class="modal-content glass-card modal-lg">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="database"></i> Manajemen Database Perizinan SIMS</div>
+        <button class="modal-close" onclick="closeModal('modalSims')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="sims-upload-bar">
+          <div class="sims-upload-info">
+            <strong>Unggah Master SIMS Excel Baru:</strong> Ekspor SIMS dengan kolom <code>FREQ, CLNT_NAME, SID_LAT, SID_LONG, MASA_LAKU</code>
+          </div>
+          <div class="sims-upload-actions">
+            <input type="file" id="fileSimsInput" accept=".xlsx,.xls" style="display:none;">
+            <button class="btn btn-sm btn-primary" onclick="document.getElementById('fileSimsInput').click()">
+              <i data-lucide="upload"></i> Upload File SIMS
+            </button>
+          </div>
+        </div>
+        
+        <!-- SIMS Datasets List -->
+        <div class="section-subtitle">Daftar Versi Dataset SIMS Tersimpan:</div>
+        <div class="table-responsive" style="max-height: 250px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nama Dataset</th>
+                <th>Tanggal Query</th>
+                <th>Diunggah Oleh</th>
+                <th>Total Izin</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="simsDatasetList">
+              <tr><td colspan="5" class="text-center text-muted">Memuat data SIMS...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-glass" onclick="closeModal('modalSims')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Manual Station Modal -->
+  <div class="modal" id="modalManual">
+    <div class="modal-content glass-card modal-lg">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="plus-circle"></i> Tambahan Data Stasiun Manual</div>
+        <button class="modal-close" onclick="closeModal('modalManual')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formAddManual" class="form-inline-grid">
+          <input type="number" id="manFreq" step="0.001" placeholder="Frekuensi (MHz)" class="input-text" required>
+          <input type="text" id="manClient" placeholder="Nama Pengguna / Pemancar" class="input-text" required>
+          <input type="number" id="manLat" step="0.000001" placeholder="Latitude" class="input-text" value="-7.733042" required>
+          <input type="number" id="manLon" step="0.000001" placeholder="Longitude" class="input-text" value="110.471837" required>
+          <select id="manStatus" class="input-select">
+            <option value="Legal">Legal</option>
+            <option value="Ilegal">Ilegal</option>
+            <option value="Tidak Sesuai ISR">Tidak Sesuai ISR</option>
+            <option value="Kadaluarsa">Kadaluarsa</option>
+            <option value="Internasional">Internasional</option>
+            <option value="Off Air">Off Air</option>
+          </select>
+          <button type="submit" class="btn btn-primary btn-sm"><i data-lucide="plus"></i> Tambah</button>
+        </form>
+
+        <div class="table-responsive mt-3" style="max-height: 250px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Frekuensi</th>
+                <th>Nama Pengguna</th>
+                <th>Koordinat</th>
+                <th>Dinas</th>
+                <th>Status Legalitas</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="manualStationList">
+              <tr><td colspan="6" class="text-center text-muted">Memuat data tambahan...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-glass" onclick="closeModal('modalManual')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Interactive Map Modal -->
+  <div class="modal" id="modalMap">
+    <div class="modal-content glass-card modal-xl">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="map-pin"></i> Peta Sebaran Pemancar & Stasiun Monitoring Balmon</div>
+        <button class="modal-close" onclick="closeModal('modalMap')">&times;</button>
+      </div>
+      <div class="modal-body p-0">
+        <div id="leafletMap" style="height: 520px; width: 100%; border-radius: 8px;"></div>
+      </div>
+      <div class="modal-footer">
+        <div class="map-legend">
+          <span><span class="legend-dot blue"></span> Titik Monitoring</span>
+          <span><span class="legend-dot green"></span> Legal</span>
+          <span><span class="legend-dot yellow"></span> Kadaluarsa</span>
+          <span><span class="legend-dot red"></span> Belum Diketahui / Ilegal</span>
+        </div>
+        <button type="button" class="btn btn-glass" onclick="closeModal('modalMap')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Settings Modal -->
+  <div class="modal" id="modalSettings">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="settings"></i> Konfigurasi Parameter Balmon DIY</div>
+        <button class="modal-close" onclick="closeModal('modalSettings')">&times;</button>
+      </div>
+      <form id="formSettings">
+        <div class="modal-body">
+          <div class="section-subtitle">Batas Wilayah Kerja Balmon (Bounding Box):</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Latitude Utara (Max)</label>
+              <input type="number" id="setLatMax" step="0.000001" class="input-text" required>
+            </div>
+            <div class="form-group">
+              <label>Latitude Selatan (Min)</label>
+              <input type="number" id="setLatMin" step="0.000001" class="input-text" required>
+            </div>
+            <div class="form-group">
+              <label>Longitude Barat (Min)</label>
+              <input type="number" id="setLonMin" step="0.000001" class="input-text" required>
+            </div>
+            <div class="form-group">
+              <label>Longitude Timur (Max)</label>
+              <input type="number" id="setLonMax" step="0.000001" class="input-text" required>
+            </div>
+          </div>
+          
+          <div class="section-subtitle mt-3">Parameter Default Monitoring:</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Default Threshold Level (dBuV/m)</label>
+              <input type="number" id="setDefaultThreshold" step="1" class="input-text" required>
+            </div>
+            <div class="form-group">
+              <label>Default Radius Deteksi (km)</label>
+              <input type="number" id="setDefaultRadius" step="1" class="input-text" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-glass" onclick="closeModal('modalSettings')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Pengaturan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Application JS -->
+  <script src="/static/app.js?v=1.4"></script>
+</body>
+</html>
